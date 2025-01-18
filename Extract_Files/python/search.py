@@ -106,13 +106,17 @@ class Search:
 
     def search(self, **query_args):
         """Searches for documents in Elasticsearch."""
-        if "from_" in query_args:
-            query_args["from"] = query_args["from_"]
-            del query_args["from_"]
-        return self.es.search(
-            index="my_documents",
-            body=json.dumps(query_args),
-        )
+        try:
+            print(f"Elasticsearch query: {query_args}")  # Log the query arguments
+            response = self.es.search(
+                index="my_documents",
+                body=query_args,  # Directly pass the query_args dictionary, no need for json.dumps
+            )
+            print(f"Elasticsearch response: {response}")  # Log the response
+            return response
+        except Exception as e:
+            print(f"Error during Elasticsearch search: {str(e)}")
+            raise e  # Raise the error so it can be caught by the Flask route
 
     def retrieve_document(self, id):
         """Retrieves a document by its ID."""
