@@ -1,0 +1,79 @@
+
+
+# # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# # dependencies
+smartfinder/node_modules
+smartfinder/.pnp
+Extract_Files/node_modules
+# .pnp.js
+
+# # testing
+# /coverage
+
+# # production
+# /build
+
+# # misc
+# .DS_Store
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+
+# npm-debug.log*
+# yarn-debug.log*
+# yarn-error.log*
+
+
+# Python (Backend: Extract_Files/Python)
+Extract_Files/Python/__pycache__/
+Extract_Files/Python/*.py[cod]
+Extract_Files/Python/.env
+Extract_Files/Python/.pytest_cache/
+Extract_Files/Python/.mypy_cache/
+Extract_Files/Python/.pylint.d/
+Extract_Files/Python/.coverage
+Extract_Files/Python/htmlcov/
+Extract_Files/Python/.tox/
+Extract_Files/.venv/
+Extract_Files/venv/
+Extract_Files/.env
+Extract_Files/spacy_env/
+Extract_Files/Python/env/
+Extract_Files/Python/instance/
+Extract_Files/Python/.ipynb_checkpoints/
+
+Extract_Files/try.json
+Extract_Files/test.js
+
+
+# Logs
+*.log
+*.log.*
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS-specific Files
+.DS_Store
+Thumbs.db
+
+# Other Cache and Temporary Files
+*.bak
+*.tmp
+*.old
+*.pid
+
+# Lint and Formatter
+.eslintcache
+.prettierignore
+.prettiercache
+.pylintrc
+
+# Git
+.git/
+*.orig
