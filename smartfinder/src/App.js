@@ -3,6 +3,7 @@ import './App.css';
 
 const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('Title'); // State for filter
   const [error, setError] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -18,8 +19,15 @@ const App = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(searchQuery)}`);
+      // Log the URL for the request
+      const url = `http://localhost:5000/search?query=${encodeURIComponent(searchQuery)}&filter=${encodeURIComponent(filter)}`;
+      console.log('Search query URL:', url);
+
+      // Make the fetch request to the backend
+      const response = await fetch(url);
       const data = await response.json();
+
+      console.log('Data received from backend:', data);  // Log the received data
 
       if (response.ok && Array.isArray(data.results)) {
         setResults(data.results);
@@ -42,7 +50,6 @@ const App = () => {
     if (!query) return text;
 
     const regex = new RegExp(`(${query})`, 'gi');
-
     return text.split(regex).map((part, index) =>
       part.toLowerCase() === query.toLowerCase() ? (
         <span key={index} className="highlight">{part}</span>
@@ -57,12 +64,25 @@ const App = () => {
       <h1>Document Search</h1>
 
       <div className="search-bar">
+        {/* Dropdown for filter selection */}
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="filter-dropdown"
+        >
+          <option value="Title">Title</option>
+          <option value="Keywords">Keywords</option>
+          <option value="Advanced Search">Advanced Search</option>
+        </select>
+
+        {/* Search input */}
         <input
           type="text"
           placeholder="Enter your search query..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
+
         <button onClick={handleSearch} disabled={loading}>
           {loading ? 'Searching...' : 'Search'}
         </button>

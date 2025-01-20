@@ -122,3 +122,8 @@ h1 {
   }
 }
 
+/* Add this to your CSS */
+.total-files {
+  font-weight: bold;
+  margin-top: 10px;
+}
