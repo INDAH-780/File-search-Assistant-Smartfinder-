@@ -1,4 +1,3 @@
-
 import re
 from flask import Flask, request, jsonify
 import json
@@ -157,6 +156,9 @@ def handle_search():
     # Convert content from Markdown to HTML
     for result in results["hits"]["hits"]:
         result["_source"]["summary"] = markdown.markdown(result["_source"]["summary"])
+
+        # Add file path to the result
+        result["_source"]["file_path"] = result["_source"].get("file_path", "N/A")
 
         # Apply highlighting based on filter type
         if filter_type == "Title":
