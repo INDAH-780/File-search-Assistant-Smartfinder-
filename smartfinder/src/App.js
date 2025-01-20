@@ -8,7 +8,6 @@ const App = () => {
   const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    // Validate the input
     if (!searchQuery.trim()) {
       setError('Please enter a search query.');
       setResults([]);
@@ -21,8 +20,6 @@ const App = () => {
     try {
       const response = await fetch(`http://localhost:5000/search?query=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
-
-      console.log('API Response:', data);
 
       if (response.ok && Array.isArray(data.results)) {
         setResults(data.results);
@@ -39,8 +36,21 @@ const App = () => {
     }
   };
 
-  // Helper function to remove file extensions
   const removeExtension = (filename) => filename.replace(/\.[^/.]+$/, '');
+
+  const highlightText = (text, query) => {
+    if (!query) return text;
+
+    const regex = new RegExp(`(${query})`, 'gi');
+
+    return text.split(regex).map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <span key={index} className="highlight">{part}</span>
+      ) : (
+        part
+      )
+    );
+  };
 
   return (
     <div className="search-app">
@@ -68,11 +78,11 @@ const App = () => {
             <div>
               <strong>
                 <a href={result._source.path} target="_blank" rel="noopener noreferrer">
-                  {removeExtension(result._source.name)}
+                  {highlightText(removeExtension(result._source.name), searchQuery)}
                 </a>
               </strong>
             </div>
-            <p><strong>Summary:</strong> {result._source.summary}</p>
+            <p><strong>Summary:</strong> <span dangerouslySetInnerHTML={{ __html: result._source.summary }} /></p>
             <p><strong>Type:</strong> {result._source.type}</p>
             <p><strong>Date Modified:</strong> {new Date(result._source.date_modified).toLocaleString()}</p>
           </div>
