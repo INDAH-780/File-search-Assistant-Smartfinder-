@@ -130,12 +130,9 @@ def handle_search():
             },
         }
 
-    # Execute the search query
     results = search_instance.search(
-        **search_query,
-        size=5,
-        from_=from_,
-    )
+    **search_query
+     )
 
     aggs = {
         "Category": {
