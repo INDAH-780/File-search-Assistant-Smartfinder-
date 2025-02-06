@@ -30,6 +30,10 @@ Extract_Files/node_modules
 Extract_Files/Python/__pycache__/
 Extract_Files/Python/*.py[cod]
 Extract_Files/Python/.env
+Extract_Files/Python/back.py
+Extract_Files/Python/back2.py
+Extract_Files/Python/datas.json
+Extract_Files/Python/save.js
 Extract_Files/Python/.pytest_cache/
 Extract_Files/Python/.mypy_cache/
 Extract_Files/Python/.pylint.d/

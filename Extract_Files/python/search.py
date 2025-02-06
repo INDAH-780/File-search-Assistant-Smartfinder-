@@ -11,7 +11,6 @@ load_dotenv()
 
 class Search:
     def __init__(self):
-        # Initialize model and Elasticsearch connection
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
         es_username = os.getenv("ES_USERNAME")
         es_password = os.getenv("ES_PASSWORD")
@@ -22,10 +21,13 @@ class Search:
             ca_certs=cert_path,
             verify_certs=True
         )
-
         client_info = self.es.info()
         print("Connected to Elasticsearch!")
         pprint(client_info)
+
+    def convert_keywords(self, keywords):
+        """Convert an array of arrays to an array of objects."""
+        return [{"keyword": keyword, "count": count} for keyword, count in keywords]
 
     def create_index(self):
         """Creates the index with mappings."""
@@ -34,14 +36,15 @@ class Search:
             index="my_documents",
             mappings={
                 "properties": {
-                    "embedding": {
-                        "type": "dense_vector",
-                    },
-                    "elser_embedding": {
-                        "type": "sparse_vector",
-                    },
-                    "summary": {
-                        "type": "text"
+                    "embedding": {"type": "dense_vector"},
+                    "elser_embedding": {"type": "sparse_vector"},
+                    "summary": {"type": "text"},
+                    "keywords": {
+                        "type": "nested",
+                        "properties": {
+                            "keyword": {"type": "keyword"},
+                            "count": {"type": "integer"}
+                        }
                     }
                 }
             },
@@ -54,6 +57,9 @@ class Search:
 
     def insert_document(self, document):
         """Inserts a single document into Elasticsearch."""
+        if "keywords" in document:
+            document["keywords"] = self.convert_keywords(document["keywords"])
+        
         return self.es.index(
             index="my_documents",
             document={
@@ -67,6 +73,9 @@ class Search:
         operations = []
         for i, document in enumerate(documents):
             try:
+                if "keywords" in document:
+                    document["keywords"] = self.convert_keywords(document["keywords"])
+
                 embedding = self.get_embedding(document["summary"])
                 operations.append({"index": {"_index": "my_documents"}})
                 operations.append(
@@ -78,14 +87,12 @@ class Search:
             except Exception as e:
                 print(f"Error processing document {i}: {e}")
                 print(f"Document content: {document}")
-        
+
         print("Operations being sent to Elasticsearch:")
         pprint(operations)  # Debugging line
-
         if not operations:
             print("No operations to index.")
             return None
-
         response = self.es.bulk(operations=operations)
         print("Bulk insert response:", response)
         if response.get("errors", False):
@@ -93,7 +100,6 @@ class Search:
                 if "error" in item["index"]:
                     print(f"Error indexing document {i}: {item['index']['error']}")
                     print(f"Document: {documents[i]}")
-
         return response
 
     def reindex(self):
@@ -101,22 +107,16 @@ class Search:
         self.create_index()
         with open("../data.json", "rt", encoding="utf-8") as f:
             documents = json.load(f)
-        # for document in documents:
-        #     print(f"Document: {document}")
 
     def search(self, **query_args):
         """Searches for documents in Elasticsearch."""
-        try:
-            print(f"Elasticsearch query: {query_args}")  # Log the query arguments
-            response = self.es.search(
-                index="my_documents",
-                body=query_args,  # Directly pass the query_args dictionary, no need for json.dumps
-            )
-            print(f"Elasticsearch response: {response}")  # Log the response
-            return response
-        except Exception as e:
-            print(f"Error during Elasticsearch search: {str(e)}")
-            raise e  # Raise the error so it can be caught by the Flask route
+        if "from_" in query_args:
+            query_args["from"] = query_args["from_"]
+            del query_args["from_"]
+        return self.es.search(
+            index="my_documents",
+            body=json.dumps(query_args),
+        )
 
     def retrieve_document(self, id):
         """Retrieves a document by its ID."""
@@ -124,48 +124,32 @@ class Search:
 
     def deploy_elser(self):
         """Deploys the ELSER model and pipeline."""
-        # Download ELSER v2
+        # Deploy the model and pipeline
         self.es.ml.put_trained_model(
             model_id=".elser_model_2", input={"field_names": ["text_field"]}
         )
-
-        # Wait until the model is ready
         while True:
             status = self.es.ml.get_trained_models(
                 model_id=".elser_model_2", include="definition_status"
             )
             if status["trained_model_configs"][0]["fully_defined"]:
-                # Model is ready
                 break
             time.sleep(1)
-
-        # Deploy the model
         self.es.ml.start_trained_model_deployment(model_id=".elser_model_2")
-
-        # Define a pipeline
         self.es.ingest.put_pipeline(
             id="elser-ingest-pipeline",
-            processors=[
-                {
-                    "inference": {
-                        "model_id": ".elser_model_2",
-                        "input_output": [
-                            {
-                                "input_field": "summary",
-                                "output_field": "elser_embedding",
-                            }
-                        ],
-                    }
+            processors=[{
+                "inference": {
+                    "model_id": ".elser_model_2",
+                    "input_output": [{"input_field": "summary", "output_field": "elser_embedding"}]
                 }
-            ],
+            }]
         )
 
     def is_model_deployed(self):
         """Checks if the ELSER model and pipeline are already deployed."""
         try:
-            # Check for the trained model
             self.es.ml.get_trained_models(model_id=".elser_model_2")
-            # Check for the ingest pipeline
             self.es.ingest.get_pipeline(id="elser-ingest-pipeline")
             return True
         except exceptions.NotFoundError:

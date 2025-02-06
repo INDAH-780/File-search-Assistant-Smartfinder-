@@ -256,6 +256,14 @@ async function getSpacyKeywords(text) {
 
 
 async function scanDirectory(dirPath, fileStream, existingMetadata = []) {
+    const excludedDirs = ['AppData', 'node_modules', '.cache', '.vscode', '.docker'];
+    
+    // Ignore excluded directories
+    if (excludedDirs.some(excluded => dirPath.includes(excluded))) {
+        console.log(`Skipping excluded directory: ${dirPath}`);
+        return;
+    }
+
     let files;
     try {
         files = fs.readdirSync(dirPath);
@@ -295,67 +303,67 @@ async function scanDirectory(dirPath, fileStream, existingMetadata = []) {
                 uploadedToGemini: false
             };
 
-           const existingFileMetadata = existingMetadata.find(item => item.path === fullPath);
-                let jsonString;
+            const existingFileMetadata = existingMetadata.find(item => item.path === fullPath);
+            let jsonString;
             if (existingFileMetadata && existingFileMetadata.summary !== "Error Uploading File" && !existingFileMetadata.summary?.startsWith("Error Summarizing")) {
                 console.log(`Skipping previously processed file: ${fullPath}`);
                 continue;
             }
 
-             if (existingFileMetadata && (existingFileMetadata.summary === "Error Uploading File" || existingFileMetadata.summary?.startsWith("Error Summarizing"))) {
+            if (existingFileMetadata && (existingFileMetadata.summary === "Error Uploading File" || existingFileMetadata.summary?.startsWith("Error Summarizing"))) {
                 Object.assign(fileMetadata, existingFileMetadata);
-                  console.log(`Re-processing file with previous errors: ${fullPath}`);
-              } else{
-                 console.log(`Processing new file: ${fullPath}`);
-              }
+                console.log(`Re-processing file with previous errors: ${fullPath}`);
+            } else {
+                console.log(`Processing new file: ${fullPath}`);
+            }
 
             let geminiSummary = null;
-           try {
+            try {
                 const geminiFile = await uploadToGemini(fullPath);
                 if (geminiFile) {
                     await waitForFilesActive([geminiFile]);
                     geminiSummary = await summarizeFile(geminiFile);
-                     fileMetadata.uploadedToGemini = true;
-                  } else {
-                     geminiSummary = 'Error Uploading File';
+                    fileMetadata.uploadedToGemini = true;
+                } else {
+                    geminiSummary = 'Error Uploading File';
                 }
-             }
-           catch (error) {
+            } catch (error) {
                 console.error(`Error processing file ${fullPath}: ${error}`);
-                  geminiSummary = null;
-           }
-           fileMetadata.summary = geminiSummary;
+                geminiSummary = null;
+            }
+            fileMetadata.summary = geminiSummary;
 
             // Generate keywords using spaCy
             try {
-               const textForKeywords = geminiSummary || (await getTextContent(fullPath));
+                const textForKeywords = geminiSummary || (await getTextContent(fullPath));
                 if (textForKeywords) {
                     const keywords = await getSpacyKeywords(textForKeywords);
                     fileMetadata.keywords = keywords;
-                  }
+                }
+            } catch (error) {
+                console.error(`Error generating keywords for ${fullPath}: ${error}`);
             }
-            catch (error) {
-                 console.error(`Error generating keywords for ${fullPath}: ${error}`);
-            }
-             // Handle image files (.jpg, '.jpeg', '.png', '.gif')
+            
+            // Handle image files (.jpg, .jpeg, .png, .gif)
             if (['.jpg', '.jpeg', '.png', '.gif'].includes(path.extname(file).toLowerCase())) {
                 try {
-                   const dimensions = sizeOf(fullPath);
-                     fileMetadata.dimensions = {
+                    const dimensions = sizeOf(fullPath);
+                    fileMetadata.dimensions = {
                         width: dimensions.width,
-                         height: dimensions.height
-                       };
-                  } catch (err) {
-                      console.error(`Error reading image file: ${fullPath}`, err);
-                     fileMetadata.dimensions = '[Image Parsing Failed]';
-                   }
-             }
-           jsonString = JSON.stringify(fileMetadata, null, 2) + ',\n';
-           fileStream.write(jsonString);
+                        height: dimensions.height
+                    };
+                } catch (err) {
+                    console.error(`Error reading image file: ${fullPath}`, err);
+                    fileMetadata.dimensions = '[Image Parsing Failed]';
+                }
+            }
+            jsonString = JSON.stringify(fileMetadata, null, 2) + ',\n';
+            fileStream.write(jsonString);
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
     }
 }
+
 async function saveMetadata() {
     const homeDir = os.homedir();
     const filePath = 'data.json';

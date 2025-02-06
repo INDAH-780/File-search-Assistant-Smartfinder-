@@ -6,16 +6,14 @@ const App = () => {
   const [filter, setFilter] = useState('Title');
   const [error, setError] = useState('');
   const [results, setResults] = useState([]);
-  const [totalResults, setTotalResults] = useState(0); // State for total results
+  const [totalResults, setTotalResults] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [modalFilePath, setModalFilePath] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       setError('Please enter a search query.');
       setResults([]);
-      setTotalResults(0); // Reset total results
+      setTotalResults(0);
       return;
     }
 
@@ -33,17 +31,17 @@ const App = () => {
 
       if (response.ok && Array.isArray(data.results)) {
         setResults(data.results);
-        setTotalResults(data.total || 0); // Set the total results
+        setTotalResults(data.total || 0);
       } else {
         setError('No results found.');
         setResults([]);
-        setTotalResults(0); // Reset total results
+        setTotalResults(0);
       }
     } catch (err) {
       console.error('Error fetching search results:', err);
       setError('An error occurred while fetching search results.');
       setResults([]);
-      setTotalResults(0); // Reset total results
+      setTotalResults(0);
     } finally {
       setLoading(false);
     }
@@ -65,21 +63,20 @@ const App = () => {
   };
 
   const handleFileClick = (filePath) => {
-    setModalFilePath(filePath);
-    setIsModalOpen(true);
+    // Convert Windows path to a URL-safe format
+    const fileUrl = `http://localhost:5000/serve-file?path=${encodeURIComponent(filePath)}`;
+  
+    console.log("Opening file:", fileUrl);  
+  
+    window.open(fileUrl, '_blank');  
   };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setModalFilePath('');
-  };
-
+  
+  
   return (
     <div className="search-app">
       <h1>Document Search</h1>
 
       <div className="search-bar">
-        {/* Dropdown for filter selection */}
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -90,7 +87,6 @@ const App = () => {
           <option value="Advanced Search">Advanced Search</option>
         </select>
 
-        {/* Search input */}
         <input
           type="text"
           placeholder="Enter your search query..."
@@ -115,13 +111,14 @@ const App = () => {
           </>
         )}
         {results.length === 0 && !loading && !error && <p>No results found.</p>}
+
         {results.map((result) => (
           <div key={result._id} className="result-item">
             <div>
               <strong>
                 <button
                   className="file-link"
-                  onClick={() => handleFileClick(result._source.path)}
+                  onClick={() => handleFileClick(result._source.path)} // Trigger the file open on click
                 >
                   {highlightText(removeExtension(result._source.name), searchQuery)}
                 </button>
@@ -130,23 +127,17 @@ const App = () => {
             <p><strong>Summary:</strong> <span dangerouslySetInnerHTML={{ __html: result._source.summary }} /></p>
             <p><strong>Type:</strong> {result._source.type}</p>
             <p><strong>Date Modified:</strong> {new Date(result._source.dateModified).toLocaleString()}</p>
+
+            {/* View Details Button */}
+            <button
+              onClick={() => handleFileClick(result._source.path)} // Trigger file open via the new backend route
+              className="view-details-button"
+            >
+              View Details
+            </button>
           </div>
         ))}
       </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>File Location</h3>
-            <p>The file is located at:</p>
-            <p className="file-path">{modalFilePath}</p>
-            <button className="close-button" onClick={closeModal}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

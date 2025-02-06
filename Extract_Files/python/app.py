@@ -4,6 +4,16 @@ import json
 from search import Search
 import markdown
 from flask_cors import CORS
+import json
+import os
+from pprint import pprint
+from search import Search
+from elasticsearch import exceptions  
+import re
+from flask import Flask, request, jsonify, send_file
+import markdown
+from flask_cors import CORS
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
@@ -18,6 +28,26 @@ def deploy_elser():
         return jsonify({"message": "ELSER model deployed."}), 200
     else:
         return jsonify({"message": "ELSER model already deployed."}), 200
+    
+@app.route('/serve-file')
+def serve_file():
+    encoded_path = request.args.get('path')
+    
+    if not encoded_path:
+        return jsonify({"error": "No file path provided"}), 400
+
+    # Decode the URL-encoded path correctly
+    file_path = urllib.parse.unquote(encoded_path)
+
+    # Ensure the file exists
+    if not os.path.exists(file_path):
+        return jsonify({"error": "File not found"}), 404
+
+    try:
+        return send_file(file_path, as_attachment=False)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
 
 @app.route('/search', methods=['GET'])
 def handle_search():
