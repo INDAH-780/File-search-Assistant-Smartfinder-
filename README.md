@@ -76,10 +76,11 @@ Still in the .env file, replace the "your api key" with your generated geminia a
 Your env file should look like this
 
 env
-
+```
 ELASTICSEARCH_HOST=localhost
 ELASTICSEARCH_PASSWORD=your_password
 ELASTICSEARCH_USER=your_username
+```
 Running the Application
 Start the Elasticsearch and Kibana containers.
 Run the Python application:
